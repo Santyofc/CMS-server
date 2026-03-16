@@ -1,0 +1,35 @@
+# Node
+node_modules
+
+# Next.js
+.next
+out
+
+# Build
+dist
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Env
+.env
+.env.*
+
+# Turbo
+.turbo
+
+# Secrets
+*.pem
+*.key
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode
+.idea
