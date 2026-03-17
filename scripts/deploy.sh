@@ -62,8 +62,8 @@ pnpm exec pm2 startOrReload ecosystem.config.cjs --only "${PM2_APP_NAME}" --upda
 pnpm exec pm2 save
 
 log "waiting for local health checks"
-curl --fail --silent --show-error --retry 10 --retry-delay 3 "${LOCAL_HEALTH_URL}" > /dev/null
-curl --fail --silent --show-error --retry 10 --retry-delay 3 "${LOCAL_READINESS_URL}" > /dev/null
+curl --fail --silent --show-error --retry 10 --retry-delay 3 --retry-connrefused "${LOCAL_HEALTH_URL}" > /dev/null
+curl --fail --silent --show-error --retry 10 --retry-delay 3 --retry-connrefused "${LOCAL_READINESS_URL}" > /dev/null
 
 if [[ -n "${APP_URL:-}" && -z "${PUBLIC_HEALTH_URL}" ]]; then
   PUBLIC_HEALTH_URL="${APP_URL%/}/api/health"
@@ -71,7 +71,7 @@ fi
 
 if [[ -n "${PUBLIC_HEALTH_URL}" ]]; then
   log "checking public health endpoint"
-  curl --fail --silent --show-error --retry 10 --retry-delay 3 "${PUBLIC_HEALTH_URL}" > /dev/null
+  curl --fail --silent --show-error --retry 10 --retry-delay 3 --retry-connrefused "${PUBLIC_HEALTH_URL}" > /dev/null
 fi
 
 log "deploy successful: $(git rev-parse --short HEAD)"
