@@ -36,10 +36,13 @@ export default function UsersManagement({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [resetTarget, setResetTarget] = useState<UserListItemDto | null>(null);
+  const [resetPassword, setResetPassword] = useState("");
   const [form, setForm] = useState({
     email: "",
     password: "",
-    role: currentUserRole === "owner" ? "admin" : "operator"
+    role: currentUserRole === "owner" ? "admin" : "operator",
+    mustChangePassword: true
   });
 
   const filteredUsers = useMemo(() => {
@@ -101,8 +104,13 @@ export default function UsersManagement({
       }
 
       setShowCreate(false);
-      setForm({ email: "", password: "", role: currentUserRole === "owner" ? "admin" : "operator" });
-      setMessage(`Usuario ${payload.data.email} creado correctamente`);
+      setForm({
+        email: "",
+        password: "",
+        role: currentUserRole === "owner" ? "admin" : "operator",
+        mustChangePassword: true
+      });
+      setMessage(`Usuario ${payload.data.email} creado correctamente. Password temporal: ${payload.data.temporaryPassword}`);
       await reloadUsers();
       router.refresh();
     } catch (requestError) {
@@ -129,7 +137,8 @@ export default function UsersManagement({
         throw new Error(payload.error ?? "No fue posible actualizar el usuario");
       }
 
-      setMessage(successMessage);
+      const issuedPassword = payload.data?.temporaryPassword as string | undefined;
+      setMessage(issuedPassword ? `${successMessage}. Password temporal: ${issuedPassword}` : successMessage);
       await reloadUsers();
       router.refresh();
     } catch (requestError) {
@@ -143,7 +152,7 @@ export default function UsersManagement({
     <div className="stack-md">
       <Panel
         title="Usuarios operativos"
-        subtitle="Alta, cambio de rol y activación de cuentas sobre el sistema real."
+        subtitle="Alta, cambio de rol, activación y emisión de passwords temporales sobre el sistema real."
         actions={(
           <div className="panel-actions">
             <Button variant="secondary" onClick={() => void reloadUsers()} disabled={loading || submitting}>
@@ -201,6 +210,7 @@ export default function UsersManagement({
                 <th>Usuario</th>
                 <th>Rol</th>
                 <th>Estado</th>
+                <th>Password</th>
                 <th>Creado</th>
                 <th>Acciones</th>
               </tr>
@@ -228,6 +238,11 @@ export default function UsersManagement({
                 <td>
                   <Badge tone={user.isActive ? "success" : "warning"}>{user.isActive ? "active" : "inactive"}</Badge>
                 </td>
+                <td>
+                  <Badge tone={user.mustChangePassword ? "warning" : "success"}>
+                    {user.mustChangePassword ? "must change" : "ready"}
+                  </Badge>
+                </td>
                 <td>{new Date(user.createdAt).toLocaleString("es-CR")}</td>
                 <td>
                   <div className="table-actions">
@@ -253,6 +268,16 @@ export default function UsersManagement({
                     >
                       {user.isActive ? "Desactivar" : "Activar"}
                     </Button>
+                    <Button
+                      variant="secondary"
+                      disabled={submitting || (currentUserRole !== "owner" && (user.role === "admin" || user.role === "owner"))}
+                      onClick={() => {
+                        setResetTarget(user);
+                        setResetPassword("");
+                      }}
+                    >
+                      Reset password
+                    </Button>
                   </div>
                 </td>
               </tr>
@@ -267,7 +292,7 @@ export default function UsersManagement({
             <header>
               <span className="eyebrow">Usuarios</span>
               <h3>Crear usuario operativo</h3>
-              <p>Se almacena password hasheada y el rol queda restringido por el rol actual del operador.</p>
+              <p>Se almacena password hasheada. Si no indicas una clave inicial, el sistema genera una temporal segura.</p>
             </header>
 
             <div className="stack-lg">
@@ -280,12 +305,12 @@ export default function UsersManagement({
                 />
               </Field>
 
-              <Field label="Password inicial" hint="Usa una contraseña temporal fuerte; el usuario podrá rotarla luego.">
+              <Field label="Password inicial" hint="Opcional. Si la dejas vacía, se genera y se muestra una sola vez.">
                 <Input
                   type="password"
                   value={form.password}
                   onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-                  placeholder="Min. 10 caracteres"
+                  placeholder="Generar automáticamente"
                 />
               </Field>
 
@@ -301,6 +326,15 @@ export default function UsersManagement({
                     ))}
                 </Select>
               </Field>
+
+              <label className="helper-text" style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={form.mustChangePassword}
+                  onChange={(event) => setForm((current) => ({ ...current, mustChangePassword: event.target.checked }))}
+                />
+                Forzar cambio de password en el primer login
+              </label>
             </div>
 
             <div className="modal-footer">
@@ -309,6 +343,52 @@ export default function UsersManagement({
               </Button>
               <Button onClick={() => void submitCreateUser()} loading={submitting}>
                 Crear usuario
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {resetTarget ? (
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal">
+            <header>
+              <span className="eyebrow">Reset</span>
+              <h3>Resetear contraseña</h3>
+              <p>
+                Se emitirá una contraseña temporal para {resetTarget.email}. La cuenta quedará marcada con
+                <span className="mono"> must_change_password</span>.
+              </p>
+            </header>
+
+            <div className="stack-lg">
+              <Field label="Nueva contraseña temporal" hint="Opcional. Si la dejas vacía, el backend genera una.">
+                <Input
+                  type="password"
+                  value={resetPassword}
+                  onChange={(event) => setResetPassword(event.target.value)}
+                  placeholder="Generar automáticamente"
+                />
+              </Field>
+            </div>
+
+            <div className="modal-footer">
+              <Button variant="ghost" onClick={() => setResetTarget(null)} disabled={submitting}>
+                Cancelar
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  void updateUser(
+                    resetTarget.id,
+                    { type: "reset_password", password: resetPassword },
+                    `Password reseteada para ${resetTarget.email}`
+                  );
+                  setResetTarget(null);
+                }}
+                loading={submitting}
+              >
+                Emitir temporal
               </Button>
             </div>
           </div>

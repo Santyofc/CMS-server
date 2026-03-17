@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import postgres from "postgres";
 
-const APP_ROLES = new Set(["owner", "admin", "operator", "viewer"]);
+const BOOTSTRAP_ROLES = new Set(["owner", "admin"]);
 
 function loadEnvFile() {
   const envPath = path.join(process.cwd(), ".env");
@@ -67,6 +67,7 @@ async function main() {
   const email = String(args.email ?? "").trim().toLowerCase();
   const password = String(args.password ?? "");
   const role = String(args.role ?? "owner").trim().toLowerCase();
+  const mustChangePassword = String(args.mustChangePassword ?? "false").trim().toLowerCase() === "true";
 
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is required. Create /var/www/cms/.env or export it before running bootstrap.");
@@ -80,13 +81,23 @@ async function main() {
     throw new Error("Provide a password with at least 10 characters via --password");
   }
 
-  if (!APP_ROLES.has(role)) {
-    throw new Error("Invalid role. Allowed values: owner, admin, operator, viewer");
+  if (!BOOTSTRAP_ROLES.has(role)) {
+    throw new Error("Invalid bootstrap role. Allowed values: owner, admin");
   }
 
   const sql = postgres(process.env.DATABASE_URL, { max: 1 });
 
   try {
+    const privilegedUsers = await sql`
+      select id, email, role
+      from users
+      where role in ('owner', 'admin', 'superadmin')
+      limit 1
+    `;
+    if (privilegedUsers.length > 0) {
+      throw new Error(`A privileged user already exists (${privilegedUsers[0].email}). Use the panel or reset flow instead of bootstrap.`);
+    }
+
     const existing = await sql`select id, email from users where email = ${email} limit 1`;
     if (existing.length > 0) {
       throw new Error(`A user with email ${email} already exists`);
@@ -94,11 +105,11 @@ async function main() {
 
     const passwordHash = hashPassword(password);
     await sql`
-      insert into users (email, password_hash, role, is_active)
-      values (${email}, ${passwordHash}, ${role}, true)
+      insert into users (email, password_hash, role, is_active, must_change_password)
+      values (${email}, ${passwordHash}, ${role}, true, ${mustChangePassword})
     `;
 
-    console.log(`User ${email} created with role ${role}`);
+    console.log(`Bootstrap user ${email} created with role ${role}`);
   } finally {
     await sql.end({ timeout: 5 });
   }

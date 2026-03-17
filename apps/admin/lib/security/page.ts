@@ -7,6 +7,9 @@ export async function requirePageAccess(minRole: Role = "viewer") {
   if (!user) {
     redirect("/login");
   }
+  if (user.mustChangePassword) {
+    redirect("/setup-password");
+  }
 
   return user;
 }

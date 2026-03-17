@@ -6,7 +6,14 @@ import { logError } from "@/lib/security/logger";
 import { requireApiUser } from "@/lib/security/auth";
 import { roleSchema } from "@/lib/security/roles";
 import { writeAuditLog } from "@/lib/security/audit";
-import { updateUserRole, updateUserStatus, UserServiceError } from "@/lib/services/users";
+import {
+  resetUserPassword,
+  updateMustChangePassword,
+  updateUserRole,
+  updateUserStatus,
+  type UserRecordWithTemporaryPassword,
+  UserServiceError
+} from "@/lib/services/users";
 
 const updateSchema = z.discriminatedUnion("type", [
   z.object({
@@ -16,6 +23,14 @@ const updateSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("status"),
     isActive: z.boolean()
+  }),
+  z.object({
+    type: z.literal("must_change_password"),
+    mustChangePassword: z.boolean()
+  }),
+  z.object({
+    type: z.literal("reset_password"),
+    password: z.string().min(10).optional().or(z.literal(""))
   })
 ]);
 
@@ -43,16 +58,36 @@ export async function PATCH(request: NextRequest, context: { params: { id: strin
 
     const data = payload.type === "role"
       ? await updateUserRole(auth.user, params.id, payload.role)
-      : await updateUserStatus(auth.user, params.id, payload.isActive);
+      : payload.type === "status"
+        ? await updateUserStatus(auth.user, params.id, payload.isActive)
+        : payload.type === "must_change_password"
+          ? await updateMustChangePassword(auth.user, params.id, payload.mustChangePassword)
+          : await resetUserPassword({
+            actor: auth.user,
+            targetUserId: params.id,
+            password: payload.password
+          });
 
     await writeAuditLog({
       userId: auth.user.id,
-      action: payload.type === "role" ? "update_user_role" : "update_user_status",
+      action:
+        payload.type === "role"
+          ? "update_user_role"
+          : payload.type === "status"
+            ? "update_user_status"
+            : payload.type === "must_change_password"
+              ? "update_user_password_flag"
+              : "reset_user_password",
       provider: "users",
       target: String(params.id),
-      payloadSummary: payload.type === "role"
-        ? { role: payload.role }
-        : { isActive: payload.isActive },
+      payloadSummary:
+        payload.type === "role"
+          ? { role: payload.role }
+          : payload.type === "status"
+            ? { isActive: payload.isActive }
+            : payload.type === "must_change_password"
+              ? { mustChangePassword: payload.mustChangePassword }
+              : { temporaryPasswordIssued: true },
       result: "success",
       ip: meta.ip,
       userAgent: meta.userAgent,
@@ -61,7 +96,14 @@ export async function PATCH(request: NextRequest, context: { params: { id: strin
       requestId: meta.requestId
     });
 
-    return NextResponse.json({ data });
+    return NextResponse.json({
+      data: payload.type === "reset_password"
+        ? {
+          ...(data as UserRecordWithTemporaryPassword),
+          temporaryPassword: (data as UserRecordWithTemporaryPassword).temporaryPassword
+        }
+        : data
+    });
   } catch (error) {
     const statusCode = error instanceof UserServiceError ? error.statusCode : 400;
     const message = error instanceof UserServiceError ? error.message : "No fue posible actualizar el usuario";

@@ -31,7 +31,8 @@ export default function LoginForm() {
         return;
       }
 
-      router.push("/");
+      const payload = await response.json();
+      router.push(payload.data?.mustChangePassword ? "/setup-password" : "/");
       router.refresh();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "No fue posible iniciar sesión");

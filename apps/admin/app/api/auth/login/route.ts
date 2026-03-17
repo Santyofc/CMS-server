@@ -33,7 +33,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
-    return NextResponse.json({ data: { id: user.id, email: user.email, role: user.role } });
+    return NextResponse.json({
+      data: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        mustChangePassword: user.mustChangePassword
+      }
+    });
   } catch (error) {
     logError({ route: "/api/auth/login" }, error, "login failed");
     return NextResponse.json({ error: "Login failed" }, { status: 400 });

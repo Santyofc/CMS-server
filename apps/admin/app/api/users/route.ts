@@ -15,8 +15,9 @@ const listQuerySchema = z.object({
 
 const createUserSchema = z.object({
   email: z.string().trim().email(),
-  password: z.string().min(10, "La contraseña debe tener al menos 10 caracteres"),
-  role: roleSchema
+  password: z.string().min(10, "La contraseña debe tener al menos 10 caracteres").optional().or(z.literal("")),
+  role: roleSchema,
+  mustChangePassword: z.boolean().optional()
 });
 
 export async function GET(request: NextRequest) {
@@ -65,7 +66,8 @@ export async function POST(request: NextRequest) {
       target: created.email,
       payloadSummary: {
         role: created.role,
-        isActive: created.isActive
+        isActive: created.isActive,
+        mustChangePassword: created.mustChangePassword
       },
       result: "success",
       ip: meta.ip,
@@ -75,7 +77,12 @@ export async function POST(request: NextRequest) {
       requestId: meta.requestId
     });
 
-    return NextResponse.json({ data: created }, { status: 201 });
+    return NextResponse.json({
+      data: {
+        ...created,
+        temporaryPassword: created.temporaryPassword
+      }
+    }, { status: 201 });
   } catch (error) {
     const statusCode = error instanceof UserServiceError ? error.statusCode : 400;
     const message = error instanceof UserServiceError ? error.message : "No fue posible crear el usuario";

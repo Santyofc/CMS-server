@@ -10,6 +10,7 @@ export type AuthUser = {
   id: number;
   email: string;
   role: Role;
+  mustChangePassword: boolean;
 };
 
 const SESSION_COOKIE = "cms_session";
@@ -55,7 +56,8 @@ export async function loginWithEmailPassword(email: string, password: string): P
   return {
     id: user.id,
     email: user.email,
-    role: normalizeRole(user.role)
+    role: normalizeRole(user.role),
+    mustChangePassword: user.must_change_password
   };
 }
 
@@ -83,6 +85,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
       user_id: sessions.user_id,
       email: users.email,
       role: users.role,
+      must_change_password: users.must_change_password,
       expires_at: sessions.expires_at
     })
     .from(sessions)
@@ -96,16 +99,27 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   return {
     id: session.user_id,
     email: session.email,
-    role: normalizeRole(session.role)
+    role: normalizeRole(session.role),
+    mustChangePassword: session.must_change_password
   };
 }
 
-export async function requireApiUser(minRole: Role = "viewer") {
+export async function requireApiUser(
+  minRole: Role = "viewer",
+  options?: { allowPasswordChange?: boolean }
+) {
   const user = await getCurrentUser();
   if (!user) {
     return {
       ok: false as const,
       response: NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    };
+  }
+
+  if (user.mustChangePassword && !options?.allowPasswordChange) {
+    return {
+      ok: false as const,
+      response: NextResponse.json({ error: "Password update required" }, { status: 403 })
     };
   }
 

@@ -122,17 +122,44 @@ cd /var/www/cms
 pnpm users:bootstrap -- --email owner@zonasurtech.online --password 'Cambiar12345' --role owner
 ```
 
+Notas del bootstrap:
+
+- solo permite `owner` o `admin`
+- falla si ya existe un usuario privilegiado (`owner`, `admin` o `superadmin`)
+- hashea la contraseña
+- puede forzar cambio inicial con `--mustChangePassword true`
+
 Crear usuarios desde panel:
 
 - iniciar sesion como `owner` o `admin`
 - abrir `/users`
-- crear usuario con email, password inicial y rol permitido por tu rol actual
+- crear usuario con email, password inicial opcional y rol permitido por tu rol actual
+
+Flujo elegido para invitacion/activacion:
+
+- password temporal + `must_change_password`
+
+Por que:
+
+- no depende de correo ni de proveedores externos
+- evita guardar tokens de invitacion adicionales
+- funciona hoy mismo en EC2/Neon con el stack actual
+- mantiene un flujo profesional: el admin emite una credencial temporal y el usuario queda forzado a rotarla
 
 Notas:
 
 - passwords siempre se guardan hasheadas
 - usuarios inactivos no pueden autenticarse
 - altas, cambios de rol y activaciones/desactivaciones escriben en `audit_logs`
+- reset administrativo de password emite una password temporal y marca `must_change_password=true`
+- el usuario con password temporal es redirigido a `/setup-password` hasta rotarla
+
+Reset y cambio de password:
+
+- admin/owner: desde `/users` pueden emitir password temporal para otra cuenta
+- usuario final: completa el cambio en `/setup-password`
+- endpoint de autoservicio: `POST /api/account/password`
+- no se guardan tokens en claro porque el flujo actual no usa email; la base fuerte es password temporal con expiracion operativa via cambio forzado inmediato
 
 El runtime de la app escucha en `127.0.0.1:3001` y Nginx debe hacer proxy a ese puerto.
 

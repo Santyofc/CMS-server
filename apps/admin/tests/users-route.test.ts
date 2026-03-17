@@ -69,6 +69,8 @@ describe("users routes", () => {
       email: "ops@example.com",
       role: "operator",
       isActive: true,
+      mustChangePassword: true,
+      temporaryPassword: "Tmp-secret-123",
       createdAt: new Date().toISOString()
     });
 
@@ -92,7 +94,8 @@ describe("users routes", () => {
     await expect(response.json()).resolves.toMatchObject({
       data: {
         email: "ops@example.com",
-        role: "operator"
+        role: "operator",
+        temporaryPassword: "Tmp-secret-123"
       }
     });
   });

@@ -46,7 +46,8 @@ vi.mock("@/packages/db", () => ({
     id: "id",
     email: "email",
     role: "role",
-    is_active: "is_active"
+    is_active: "is_active",
+    must_change_password: "must_change_password"
   }
 }));
 
@@ -74,6 +75,7 @@ describe("auth service", () => {
         role: "superadmin",
         password_hash: "stored",
         is_active: true,
+        must_change_password: false,
         created_at: new Date()
       }
     ]);
@@ -87,7 +89,8 @@ describe("auth service", () => {
     expect(user).toEqual({
       id: 5,
       email: "owner@example.com",
-      role: "owner"
+      role: "owner",
+      mustChangePassword: false
     });
     expect(cookieStore.set).toHaveBeenCalledOnce();
   });

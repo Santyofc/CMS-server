@@ -5,5 +5,6 @@ export type UserListItemDto = {
   email: string;
   role: Role;
   isActive: boolean;
+  mustChangePassword: boolean;
   createdAt: string;
 };
