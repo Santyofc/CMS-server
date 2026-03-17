@@ -40,4 +40,21 @@ describe("request integrity", () => {
     expect(result.response.status).toBe(403);
     await expect(result.response.json()).resolves.toEqual({ error: "Cross-origin requests are not allowed" });
   });
+
+  it("allows trusted proxy headers with comma-separated proto values", () => {
+    vi.stubEnv("APP_URL", "https://cms.zonasurtech.online");
+    vi.stubEnv("TRUST_PROXY", "true");
+    const request = new NextRequest("http://127.0.0.1:3001/api/auth/login", {
+      method: "POST",
+      headers: {
+        origin: "https://cms.zonasurtech.online",
+        host: "127.0.0.1:3001",
+        "x-forwarded-host": "cms.zonasurtech.online",
+        "x-forwarded-proto": "https, http"
+      }
+    });
+
+    const result = enforceSameOrigin(request);
+    expect(result.ok).toBe(true);
+  });
 });

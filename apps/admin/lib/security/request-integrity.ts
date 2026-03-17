@@ -13,14 +13,27 @@ function parseExpectedOrigin() {
   }
 }
 
+function normalizeForwardedValue(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  return value
+    .split(",")[0]
+    .trim()
+    .toLowerCase();
+}
+
 export function enforceSameOrigin(request: NextRequest) {
   const origin = request.headers.get("origin");
   const host = request.headers.get("host");
   const trustedForwardedHost = process.env.TRUST_PROXY === "true"
-    ? request.headers.get("x-forwarded-host")
+    ? normalizeForwardedValue(request.headers.get("x-forwarded-host"))
     : null;
-  const effectiveHost = trustedForwardedHost ?? host;
-  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const effectiveHost = trustedForwardedHost ?? normalizeForwardedValue(host);
+  const forwardedProto = process.env.TRUST_PROXY === "true"
+    ? normalizeForwardedValue(request.headers.get("x-forwarded-proto"))
+    : null;
 
   if (!origin || !effectiveHost) {
     return {
@@ -39,14 +52,14 @@ export function enforceSameOrigin(request: NextRequest) {
     };
   }
 
-  if (originUrl.host !== effectiveHost) {
+  if (originUrl.host.toLowerCase() !== effectiveHost) {
     return {
       ok: false as const,
       response: NextResponse.json({ error: "Cross-origin requests are not allowed" }, { status: 403 })
     };
   }
 
-  if (forwardedProto && originUrl.protocol.replace(":", "") !== forwardedProto) {
+  if (forwardedProto && originUrl.protocol.replace(":", "").toLowerCase() !== forwardedProto) {
     return {
       ok: false as const,
       response: NextResponse.json({ error: "Protocol mismatch" }, { status: 403 })
