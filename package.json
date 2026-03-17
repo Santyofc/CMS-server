@@ -10,10 +10,13 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "pnpm check:migrations && turbo run lint",
+    "test": "pnpm --filter admin-app test",
     "typecheck": "turbo run typecheck",
     "check:migrations": "node scripts/check-migrations.js",
     "db:generate": "pnpm --filter @platform/db db:generate",
-    "db:migrate": "pnpm --filter @platform/db db:migrate"
+    "db:migrate": "pnpm --filter @platform/db db:migrate",
+    "deploy:prod": "bash scripts/deploy.sh",
+    "rollback:prod": "bash scripts/rollback.sh"
   },
   "devDependencies": {
     "@types/node": "^20.14.2",

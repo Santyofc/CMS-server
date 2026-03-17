@@ -7,7 +7,7 @@
     "build": "pnpm exec next build",
     "start": "pnpm exec next start -p 3001",
     "lint": "pnpm exec next lint",
-    "typecheck": "pnpm exec tsc --noEmit",
+    "typecheck": "pnpm exec tsc --project tsconfig.typecheck.json --noEmit",
     "test": "pnpm -C ../.. exec vitest run -c apps/admin/vitest.config.ts"
   },
   "dependencies": {

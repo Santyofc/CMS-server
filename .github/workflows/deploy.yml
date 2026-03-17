@@ -1,0 +1,87 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs:
+      - validate
+    environment:
+      name: production
+
+    steps:
+      - name: Deploy to EC2 over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT || '22' }}
+          script_stop: true
+          command_timeout: 30m
+          script: |
+            set -Eeuo pipefail
+
+            if [ ! -d /var/www/cms/.git ]; then
+              mkdir -p /var/www/cms
+              git clone https://github.com/Santyofc/CMS-server.git /var/www/cms
+            fi
+
+            cd /var/www/cms
+            git fetch origin --prune
+
+            git show "${{ github.sha }}:scripts/deploy.sh" > /tmp/cms-deploy.sh
+            chmod +x /tmp/cms-deploy.sh
+
+            export DEPLOY_BRANCH=main
+            export DEPLOY_REF="${{ github.sha }}"
+            export APP_URL="https://cms.zonasurtech.online"
+
+            bash /tmp/cms-deploy.sh "${DEPLOY_REF}"

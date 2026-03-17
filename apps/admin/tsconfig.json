@@ -22,6 +22,9 @@
     ],
     "baseUrl": ".",
     "paths": {
+      "@/app/*": [
+        "app/*"
+      ],
       "@/lib/*": [
         "lib/*"
       ],
@@ -45,7 +48,6 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "**/*.d.ts",
     ".next/types/**/*.ts"
   ],
   "exclude": [

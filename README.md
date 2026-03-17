@@ -51,17 +51,58 @@ El pipeline ejecuta `pnpm check:migrations` dentro de `pnpm lint` y bloquea patr
 
 ## Produccion en EC2
 
+Ruta esperada:
+
+- `/var/www/cms`
+
+Prepara la instancia:
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y git curl nginx certbot python3-certbot-nginx
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo apt install -y nodejs
+sudo npm install -g pnpm pm2
+sudo mkdir -p /var/www/cms
+sudo chown -R "$USER:$USER" /var/www/cms
+```
+
+Clona el repo y crea un `.env` shell-compatible en `/var/www/cms/.env`:
+
+```bash
+git clone https://github.com/Santyofc/CMS-server.git /var/www/cms
+cd /var/www/cms
+cp env.example .env
+```
+
+Variables minimas para deploy:
+
+- `NODE_ENV=production`
+- `APP_URL=https://cms.zonasurtech.online`
+- `NEXT_PUBLIC_APP_URL=https://cms.zonasurtech.online`
+- `TRUST_PROXY=true`
+- `DATABASE_URL=...`
+- `REDIS_URL=...`
+- `LOG_LEVEL=info`
+
+El runtime de la app escucha en `127.0.0.1:3001` y Nginx debe hacer proxy a ese puerto.
+
 Build:
 
 ```bash
 pnpm install --frozen-lockfile
+pnpm lint
+pnpm typecheck
+pnpm test
 pnpm build
+pnpm db:migrate
 ```
 
 Run con PM2:
 
 ```bash
-pm2 start pnpm --name cms -- start
+chmod +x scripts/deploy.sh scripts/rollback.sh scripts/run-admin.sh
+pnpm exec pm2 startOrReload ecosystem.config.cjs --only cms --update-env
 pm2 save
 ```
 
@@ -91,6 +132,20 @@ WantedBy=multi-user.target
 
 `readiness` valida conectividad minima con DB y debe usarse para el reverse proxy o monitoreo.
 
+Validacion local:
+
+```bash
+curl --fail http://127.0.0.1:3001/api/health
+curl --fail http://127.0.0.1:3001/api/readiness
+```
+
+Validacion publica:
+
+```bash
+curl --fail https://cms.zonasurtech.online/api/health
+curl --fail https://cms.zonasurtech.online/api/readiness
+```
+
 ## Nginx
 
 Configurar reverse proxy hacia la app Node y reenviar:
@@ -102,7 +157,7 @@ Configurar reverse proxy hacia la app Node y reenviar:
 
 No expongas publicamente:
 
-- `3000`
+- `3001`
 - `5432`
 - `6379`
 
@@ -114,9 +169,43 @@ No expongas publicamente:
 
 ## Despliegue
 
-1. `git pull origin main`
-2. `pnpm install --frozen-lockfile`
-3. `pnpm build`
-4. `pm2 restart cms`
+CI/CD:
+
+- Workflow: `.github/workflows/deploy.yml`
+- Triggers: `push` a `main` y `workflow_dispatch`
+- Orden: `install -> lint -> typecheck -> test -> build -> deploy SSH`
+- Deploy remoto: `scripts/deploy.sh`
+- Rollback basico: `scripts/rollback.sh`
+
+Secrets requeridos en GitHub:
+
+- `EC2_HOST`
+- `EC2_USER`
+- `EC2_SSH_KEY`
+- `EC2_PORT` (opcional, default `22`)
+
+Deploy manual en EC2:
+
+```bash
+cd /var/www/cms
+chmod +x scripts/deploy.sh scripts/rollback.sh scripts/run-admin.sh
+bash scripts/deploy.sh
+```
+
+Rollback manual:
+
+```bash
+cd /var/www/cms
+bash scripts/rollback.sh <commit-previo>
+```
+
+Logs utiles:
+
+```bash
+pm2 status
+pm2 logs cms --lines 100
+sudo nginx -t
+sudo systemctl status nginx --no-pager
+```
 
 El endpoint interno de deploy debe ejecutarse solo desde usuarios con rol permitido.
