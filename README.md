@@ -227,4 +227,6 @@ sudo nginx -t
 sudo systemctl status nginx --no-pager
 ```
 
+El deploy y rollback esperan unos segundos tras `pm2 startOrReload` y reintentan probes con tolerancia a errores transitorios del upstream (`502`, `connection refused`) antes de marcar fallo.
+
 El endpoint interno de deploy debe ejecutarse solo desde usuarios con rol permitido.
