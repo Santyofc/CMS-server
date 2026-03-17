@@ -149,7 +149,7 @@ export const neonBranches = pgTable("neon_branches", {
   project_id: varchar("project_id", { length: 120 }).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   primary: boolean("primary").default(false).notNull(),
-  default: boolean("default").default(false).notNull(),
+  is_default: boolean("is_default").default(false).notNull(),
   synced_at: timestamp("synced_at", { withTimezone: true }).defaultNow().notNull(),
   raw: jsonb("raw").$type<Record<string, unknown>>().default({}).notNull()
 }, (table) => ({

@@ -58,7 +58,7 @@ export type NeonProjectDto = {
   name: string;
   region_id: string;
   platform_id: string;
-  branches: Array<{ id: string; name: string; primary: boolean; default: boolean }>;
+  branches: Array<{ id: string; name: string; primary: boolean; is_default: boolean }>;
   databases: Array<{ id: string; branch_id: string; name: string; owner_name: string }>;
   compute: Array<{ id: string; branch_id: string; type: string; current_state: string }>;
 };

@@ -52,7 +52,7 @@ export async function syncNeon() {
           project_id: branch.project_id,
           name: branch.name,
           primary: branch.primary,
-          default: branch.default,
+          is_default: branch.is_default,
           synced_at: new Date(),
           raw: branch
         }).onConflictDoUpdate({
@@ -61,7 +61,7 @@ export async function syncNeon() {
             project_id: branch.project_id,
             name: branch.name,
             primary: branch.primary,
-            default: branch.default,
+            is_default: branch.is_default,
             synced_at: new Date(),
             raw: branch
           }
@@ -140,7 +140,7 @@ export async function listNeonProjects(): Promise<NeonProjectDto[]> {
         id: branch.branch_id,
         name: branch.name,
         primary: branch.primary,
-        default: branch.default
+        is_default: branch.is_default
       })),
       databases: projectDatabases.map((database) => ({
         id: database.database_id,

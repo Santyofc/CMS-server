@@ -1,5 +1,5 @@
 {
-  "id": "2a75a495-2010-432c-9446-6241fe7b7603",
+  "id": "b5ab0b66-d21b-469e-8f45-aeb78ed0f763",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -321,8 +321,8 @@
           "notNull": true,
           "default": false
         },
-        "default": {
-          "name": "default",
+        "is_default": {
+          "name": "is_default",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,

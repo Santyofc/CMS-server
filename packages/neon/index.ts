@@ -14,7 +14,7 @@ export type NeonBranch = {
   project_id: string;
   name: string;
   primary: boolean;
-  default: boolean;
+  is_default: boolean;
 };
 
 export type NeonDatabase = {
@@ -95,7 +95,7 @@ export class RestNeonProvider implements NeonProvider {
       project_id: String(branch.project_id ?? projectId),
       name: String(branch.name),
       primary: Boolean(branch.primary),
-      default: Boolean(branch.default)
+      is_default: Boolean(branch.default)
     }));
   }
 
@@ -116,7 +116,7 @@ export class RestNeonProvider implements NeonProvider {
       project_id: String(branch.project_id ?? projectId),
       name: String(branch.name ?? branchName),
       primary: Boolean(branch.primary),
-      default: Boolean(branch.default)
+      is_default: Boolean(branch.default)
     };
   }
 
