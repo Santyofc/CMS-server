@@ -1,7 +1,6 @@
 import { sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb } from "@/packages/db";
-import { errorResponse } from "@/lib/security/http";
 import { logError, logInfo } from "@/lib/security/logger";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +9,7 @@ export async function GET() {
   try {
     const db = getDb();
     await db.execute(sql`select 1`);
-    logInfo({ route: "/api/readiness" }, "readiness probe");
+    logInfo({ route: "/api/readiness", check: "database", status: "ok" }, "readiness probe passed");
 
     return NextResponse.json({
       status: "ready",
@@ -20,7 +19,14 @@ export async function GET() {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    logError({ route: "/api/readiness" }, error, "readiness probe failed");
-    return errorResponse("Service unavailable", 503);
+    logError({ route: "/api/readiness", check: "database", status: "error" }, error, "database readiness probe failed");
+    return NextResponse.json({
+      status: "not_ready",
+      checks: {
+        database: "error"
+      },
+      error: "Database unavailable",
+      timestamp: new Date().toISOString()
+    }, { status: 503 });
   }
 }

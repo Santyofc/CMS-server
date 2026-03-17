@@ -9,26 +9,18 @@ LOCAL_HEALTH_URL="${LOCAL_HEALTH_URL:-http://127.0.0.1:${LOCAL_PORT}/api/health}
 LOCAL_READINESS_URL="${LOCAL_READINESS_URL:-http://127.0.0.1:${LOCAL_PORT}/api/readiness}"
 PUBLIC_HEALTH_URL="${PUBLIC_HEALTH_URL:-}"
 PM2_APP_NAME="${PM2_APP_NAME:-cms}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PREVIOUS_COMMIT=""
 ROLLED_BACK=0
+RELOAD_ATTEMPTED=0
 
 log() {
   printf '[deploy] %s\n' "$*"
 }
 
-source_env() {
-  local env_file="${PROJECT_DIR}/.env"
-  if [[ -f "${env_file}" ]]; then
-    set -a
-    # shellcheck disable=SC1090
-    source "${env_file}"
-    set +a
-  fi
-}
-
 rollback_on_error() {
   local exit_code=$?
-  if [[ -n "${PREVIOUS_COMMIT}" && "${ROLLED_BACK}" -eq 0 ]]; then
+  if [[ "${RELOAD_ATTEMPTED}" -eq 1 && -n "${PREVIOUS_COMMIT}" && "${ROLLED_BACK}" -eq 0 ]]; then
     ROLLED_BACK=1
     log "deploy failed, rolling back to ${PREVIOUS_COMMIT}"
     "${PROJECT_DIR}/scripts/rollback.sh" "${PREVIOUS_COMMIT}" || true
@@ -39,8 +31,12 @@ rollback_on_error() {
 
 trap rollback_on_error ERR
 
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/runtime-env.sh"
+
 cd "${PROJECT_DIR}"
-source_env
+load_runtime_env "${PROJECT_DIR}"
+validate_runtime_env
 
 log "fetching repository state"
 git fetch origin --prune
@@ -49,6 +45,7 @@ PREVIOUS_COMMIT="$(git rev-parse HEAD)"
 log "checking out ${TARGET_REF}"
 git checkout "${DEPLOY_BRANCH}"
 git reset --hard "${TARGET_REF}"
+chmod +x scripts/rollback.sh scripts/run-admin.sh
 
 log "installing dependencies"
 pnpm install --frozen-lockfile
@@ -60,6 +57,7 @@ log "running safe migrations"
 pnpm db:migrate
 
 log "reloading process ${PM2_APP_NAME}"
+RELOAD_ATTEMPTED=1
 pnpm exec pm2 startOrReload ecosystem.config.cjs --only "${PM2_APP_NAME}" --update-env
 pnpm exec pm2 save
 

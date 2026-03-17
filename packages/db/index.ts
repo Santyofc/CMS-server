@@ -12,7 +12,7 @@ export function getDb() {
 
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
-    throw new Error("DATABASE_URL is required.");
+    throw new Error("DATABASE_URL is required. Set it in /var/www/cms/.env or export it before starting the app.");
   }
 
   client = postgres(databaseUrl, { max: 1 });

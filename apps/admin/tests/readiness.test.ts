@@ -31,6 +31,10 @@ describe("readiness route", () => {
     const response = await GET();
 
     expect(response.status).toBe(503);
-    await expect(response.json()).resolves.toEqual({ error: "Service unavailable" });
+    await expect(response.json()).resolves.toMatchObject({
+      status: "not_ready",
+      checks: { database: "error" },
+      error: "Database unavailable"
+    });
   });
 });

@@ -117,7 +117,7 @@ After=network.target
 Type=simple
 WorkingDirectory=/var/www/cms
 Environment=NODE_ENV=production
-ExecStart=/usr/bin/pnpm --dir /var/www/cms/apps/admin start
+ExecStart=/bin/bash /var/www/cms/scripts/run-admin.sh
 Restart=always
 User=www-data
 
@@ -197,6 +197,18 @@ Rollback manual:
 ```bash
 cd /var/www/cms
 bash scripts/rollback.sh <commit-previo>
+```
+
+Si solo hiciste `git reset --hard <commit>` en el servidor:
+
+```bash
+cd /var/www/cms
+pnpm install --frozen-lockfile
+pnpm build
+pnpm db:migrate
+pnpm exec pm2 startOrReload ecosystem.config.cjs --only cms --update-env
+curl --fail http://127.0.0.1:3001/api/health
+curl --fail http://127.0.0.1:3001/api/readiness
 ```
 
 Logs utiles:
