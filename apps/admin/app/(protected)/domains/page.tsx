@@ -1,8 +1,10 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { listSpaceshipDns } from "@/lib/services/providers/spaceship";
+import { requirePageAccess } from "@/lib/security/page";
 
 export default async function DomainsPage() {
   noStore();
+  await requirePageAccess("viewer");
   const domains = await listSpaceshipDns();
 
   return (

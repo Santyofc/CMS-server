@@ -1,9 +1,11 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { getAwsMetrics, listAwsInstances } from "@/lib/services/providers/aws";
 import AwsMetricsClient from "./AwsMetricsClient";
+import { requirePageAccess } from "@/lib/security/page";
 
 export default async function AwsProviderPage() {
   noStore();
+  await requirePageAccess("viewer");
   const instances = await listAwsInstances();
   const first = instances[0];
   const metrics = first ? await getAwsMetrics(first.instance_id, 6) : [];

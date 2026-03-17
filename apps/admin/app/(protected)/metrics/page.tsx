@@ -1,8 +1,10 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { getDashboardSummary } from "@/lib/services/dashboard";
+import { requirePageAccess } from "@/lib/security/page";
 
 export default async function MetricsPage() {
   noStore();
+  await requirePageAccess("viewer");
   const summary = await getDashboardSummary();
 
   return (

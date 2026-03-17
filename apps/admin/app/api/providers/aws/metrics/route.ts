@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const data = await getAwsMetrics(payload.instance_id, payload.hours);
     return NextResponse.json({ data });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load AWS metrics";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: "Failed to load AWS metrics" }, { status: 400 });
   }
 }
+

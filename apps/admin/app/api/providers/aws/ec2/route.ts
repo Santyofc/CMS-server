@@ -18,7 +18,7 @@ export async function GET() {
     return NextResponse.json({ data });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load AWS EC2 data";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     return auth.response;
   }
 
-  const rate = checkRateLimit(`aws-ec2-write:${auth.user.id}`, 20, 60_000);
+  const rate = await checkRateLimit(`aws-ec2-write:${auth.user.id}`, 20, 60_000);
   if (!rate.allowed) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
@@ -76,6 +76,8 @@ export async function POST(request: NextRequest) {
       requestId: meta.requestId,
       errorMessage: message
     });
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: "Request failed" }, { status: 400 });
   }
 }
+
+

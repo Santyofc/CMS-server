@@ -1,8 +1,10 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { listNeonProjects } from "@/lib/services/providers/neon";
+import { requirePageAccess } from "@/lib/security/page";
 
 export default async function NeonProviderPage() {
   noStore();
+  await requirePageAccess("viewer");
   const projects = await listNeonProjects();
 
   return (

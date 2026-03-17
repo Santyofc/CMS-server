@@ -12,7 +12,7 @@ export async function GET() {
     const data = await listGithubRepos();
     return NextResponse.json({ data });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load GitHub repositories";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to load GitHub repositories" }, { status: 500 });
   }
 }
+

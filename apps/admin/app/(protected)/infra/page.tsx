@@ -1,8 +1,10 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { listAwsInstances } from "@/lib/services/providers/aws";
+import { requirePageAccess } from "@/lib/security/page";
 
 export default async function InfraPage() {
   noStore();
+  await requirePageAccess("viewer");
   const instances = await listAwsInstances();
 
   return (

@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     return auth.response;
   }
 
-  const rate = checkRateLimit(`sync-all:${auth.user.id}`, 5, 60_000);
+  const rate = await checkRateLimit(`sync-all:${auth.user.id}`, 5, 60_000);
   if (!rate.allowed) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
@@ -62,3 +62,4 @@ export async function POST(request: NextRequest) {
     }
   });
 }
+

@@ -1,8 +1,10 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { listGithubRepos } from "@/lib/services/providers/github";
+import { requirePageAccess } from "@/lib/security/page";
 
 export default async function RepositoriesPage() {
   noStore();
+  await requirePageAccess("viewer");
   const repos = await listGithubRepos();
 
   return (

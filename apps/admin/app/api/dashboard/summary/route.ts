@@ -12,7 +12,7 @@ export async function GET() {
     const data = await getDashboardSummary();
     return NextResponse.json({ data });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load dashboard summary";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to load dashboard summary" }, { status: 500 });
   }
 }
+

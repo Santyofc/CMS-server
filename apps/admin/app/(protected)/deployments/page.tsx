@@ -1,9 +1,11 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { listDeploymentRuns } from "@/lib/services/deployments";
 import DeployButton from "./DeployButton";
+import { requirePageAccess } from "@/lib/security/page";
 
 export default async function DeploymentsPage() {
   noStore();
+  await requirePageAccess("viewer");
   const runs = await listDeploymentRuns(50);
   const latestSystemDeploy = runs.find((run) => run.provider === "system");
   const success = runs.filter((run) => run.status.toLowerCase() === "ready" || run.status.toLowerCase() === "success").length;

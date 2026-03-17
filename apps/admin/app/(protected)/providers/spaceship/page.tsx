@@ -1,8 +1,10 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { getSpaceMailStatus, listSpaceshipDns } from "@/lib/services/providers/spaceship";
+import { requirePageAccess } from "@/lib/security/page";
 
 export default async function SpaceshipProviderPage() {
   noStore();
+  await requirePageAccess("viewer");
   const [dns, spacemail] = await Promise.all([
     listSpaceshipDns(),
     getSpaceMailStatus()

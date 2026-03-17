@@ -22,5 +22,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|.*\\..*).*)"]
+  // API authorization is enforced in each handler via requireApiUser.
+  matcher: ["/((?!api|_next/static|_next/image|.*\\..*).*)"]
 };

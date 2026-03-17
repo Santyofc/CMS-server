@@ -1,23 +1,5 @@
--- WARNING: This migration resets control-plane snapshot tables.
-DROP TABLE IF EXISTS deployment_runs CASCADE;
-DROP TABLE IF EXISTS audit_logs CASCADE;
-DROP TABLE IF EXISTS sessions CASCADE;
-DROP TABLE IF EXISTS users CASCADE;
-DROP TABLE IF EXISTS sync_runs CASCADE;
-DROP TABLE IF EXISTS spaceship_dns_records CASCADE;
-DROP TABLE IF EXISTS spaceship_domains CASCADE;
-DROP TABLE IF EXISTS neon_databases CASCADE;
-DROP TABLE IF EXISTS neon_branches CASCADE;
-DROP TABLE IF EXISTS neon_projects CASCADE;
-DROP TABLE IF EXISTS vercel_deployments CASCADE;
-DROP TABLE IF EXISTS vercel_projects CASCADE;
-DROP TABLE IF EXISTS ec2_metrics CASCADE;
-DROP TABLE IF EXISTS servers CASCADE;
-DROP TABLE IF EXISTS repository_branches CASCADE;
-DROP TABLE IF EXISTS repositories CASCADE;
-DROP TABLE IF EXISTS providers CASCADE;
 
-CREATE TABLE providers (
+CREATE TABLE IF NOT EXISTS providers (
   id serial PRIMARY KEY,
   key varchar(50) NOT NULL,
   name varchar(120) NOT NULL,
@@ -25,9 +7,9 @@ CREATE TABLE providers (
   last_synced_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE UNIQUE INDEX providers_key_idx ON providers (key);
+CREATE UNIQUE INDEX IF NOT EXISTS providers_key_idx ON providers (key);
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id serial PRIMARY KEY,
   email varchar(255) NOT NULL,
   password_hash varchar(255) NOT NULL,
@@ -35,18 +17,18 @@ CREATE TABLE users (
   is_active boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE UNIQUE INDEX users_email_idx ON users (email);
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users (email);
 
-CREATE TABLE sessions (
+CREATE TABLE IF NOT EXISTS sessions (
   id serial PRIMARY KEY,
   user_id integer NOT NULL REFERENCES users(id),
   token varchar(255) NOT NULL,
   expires_at timestamptz NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE UNIQUE INDEX sessions_token_idx ON sessions (token);
+CREATE UNIQUE INDEX IF NOT EXISTS sessions_token_idx ON sessions (token);
 
-CREATE TABLE repositories (
+CREATE TABLE IF NOT EXISTS repositories (
   id serial PRIMARY KEY,
   name varchar(255) NOT NULL,
   full_name varchar(255) NOT NULL,
@@ -58,9 +40,9 @@ CREATE TABLE repositories (
   synced_at timestamptz NOT NULL DEFAULT now(),
   raw jsonb NOT NULL DEFAULT '{}'::jsonb
 );
-CREATE UNIQUE INDEX repositories_full_name_idx ON repositories (full_name);
+CREATE UNIQUE INDEX IF NOT EXISTS repositories_full_name_idx ON repositories (full_name);
 
-CREATE TABLE repository_branches (
+CREATE TABLE IF NOT EXISTS repository_branches (
   id serial PRIMARY KEY,
   repository_full_name varchar(255) NOT NULL,
   name varchar(255) NOT NULL,
@@ -70,9 +52,9 @@ CREATE TABLE repository_branches (
   latest_commit_date timestamptz,
   synced_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE UNIQUE INDEX repo_branch_idx ON repository_branches (repository_full_name, name);
+CREATE UNIQUE INDEX IF NOT EXISTS repo_branch_idx ON repository_branches (repository_full_name, name);
 
-CREATE TABLE servers (
+CREATE TABLE IF NOT EXISTS servers (
   id serial PRIMARY KEY,
   instance_id varchar(120) NOT NULL,
   state varchar(80) NOT NULL,
@@ -89,9 +71,9 @@ CREATE TABLE servers (
   synced_at timestamptz NOT NULL DEFAULT now(),
   raw jsonb NOT NULL DEFAULT '{}'::jsonb
 );
-CREATE UNIQUE INDEX servers_instance_id_idx ON servers (instance_id);
+CREATE UNIQUE INDEX IF NOT EXISTS servers_instance_id_idx ON servers (instance_id);
 
-CREATE TABLE ec2_metrics (
+CREATE TABLE IF NOT EXISTS ec2_metrics (
   id serial PRIMARY KEY,
   instance_id varchar(120) NOT NULL,
   metric_name varchar(80) NOT NULL,
@@ -100,9 +82,9 @@ CREATE TABLE ec2_metrics (
   unit varchar(30) NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE UNIQUE INDEX ec2_metric_idx ON ec2_metrics (instance_id, metric_name, timestamp);
+CREATE UNIQUE INDEX IF NOT EXISTS ec2_metric_idx ON ec2_metrics (instance_id, metric_name, timestamp);
 
-CREATE TABLE vercel_projects (
+CREATE TABLE IF NOT EXISTS vercel_projects (
   id serial PRIMARY KEY,
   project_id varchar(120) NOT NULL,
   name varchar(255) NOT NULL,
@@ -112,9 +94,9 @@ CREATE TABLE vercel_projects (
   synced_at timestamptz NOT NULL DEFAULT now(),
   raw jsonb NOT NULL DEFAULT '{}'::jsonb
 );
-CREATE UNIQUE INDEX vercel_project_idx ON vercel_projects (project_id);
+CREATE UNIQUE INDEX IF NOT EXISTS vercel_project_idx ON vercel_projects (project_id);
 
-CREATE TABLE vercel_deployments (
+CREATE TABLE IF NOT EXISTS vercel_deployments (
   id serial PRIMARY KEY,
   deployment_id varchar(120) NOT NULL,
   project_id varchar(120) NOT NULL,
@@ -125,9 +107,9 @@ CREATE TABLE vercel_deployments (
   synced_at timestamptz NOT NULL DEFAULT now(),
   raw jsonb NOT NULL DEFAULT '{}'::jsonb
 );
-CREATE UNIQUE INDEX vercel_deployment_idx ON vercel_deployments (deployment_id);
+CREATE UNIQUE INDEX IF NOT EXISTS vercel_deployment_idx ON vercel_deployments (deployment_id);
 
-CREATE TABLE neon_projects (
+CREATE TABLE IF NOT EXISTS neon_projects (
   id serial PRIMARY KEY,
   project_id varchar(120) NOT NULL,
   name varchar(255) NOT NULL,
@@ -138,9 +120,9 @@ CREATE TABLE neon_projects (
   synced_at timestamptz NOT NULL DEFAULT now(),
   raw jsonb NOT NULL DEFAULT '{}'::jsonb
 );
-CREATE UNIQUE INDEX neon_project_idx ON neon_projects (project_id);
+CREATE UNIQUE INDEX IF NOT EXISTS neon_project_idx ON neon_projects (project_id);
 
-CREATE TABLE neon_branches (
+CREATE TABLE IF NOT EXISTS neon_branches (
   id serial PRIMARY KEY,
   branch_id varchar(120) NOT NULL,
   project_id varchar(120) NOT NULL,
@@ -150,9 +132,9 @@ CREATE TABLE neon_branches (
   synced_at timestamptz NOT NULL DEFAULT now(),
   raw jsonb NOT NULL DEFAULT '{}'::jsonb
 );
-CREATE UNIQUE INDEX neon_branch_idx ON neon_branches (branch_id);
+CREATE UNIQUE INDEX IF NOT EXISTS neon_branch_idx ON neon_branches (branch_id);
 
-CREATE TABLE neon_databases (
+CREATE TABLE IF NOT EXISTS neon_databases (
   id serial PRIMARY KEY,
   database_id varchar(120) NOT NULL,
   project_id varchar(120) NOT NULL,
@@ -162,9 +144,9 @@ CREATE TABLE neon_databases (
   synced_at timestamptz NOT NULL DEFAULT now(),
   raw jsonb NOT NULL DEFAULT '{}'::jsonb
 );
-CREATE UNIQUE INDEX neon_database_idx ON neon_databases (database_id);
+CREATE UNIQUE INDEX IF NOT EXISTS neon_database_idx ON neon_databases (database_id);
 
-CREATE TABLE spaceship_domains (
+CREATE TABLE IF NOT EXISTS spaceship_domains (
   id serial PRIMARY KEY,
   domain varchar(255) NOT NULL,
   unicode_name varchar(255) NOT NULL,
@@ -173,9 +155,9 @@ CREATE TABLE spaceship_domains (
   synced_at timestamptz NOT NULL DEFAULT now(),
   raw jsonb NOT NULL DEFAULT '{}'::jsonb
 );
-CREATE UNIQUE INDEX spaceship_domain_idx ON spaceship_domains (domain);
+CREATE UNIQUE INDEX IF NOT EXISTS spaceship_domain_idx ON spaceship_domains (domain);
 
-CREATE TABLE spaceship_dns_records (
+CREATE TABLE IF NOT EXISTS spaceship_dns_records (
   id serial PRIMARY KEY,
   domain varchar(255) NOT NULL,
   type varchar(10) NOT NULL,
@@ -185,9 +167,9 @@ CREATE TABLE spaceship_dns_records (
   synced_at timestamptz NOT NULL DEFAULT now(),
   raw jsonb NOT NULL DEFAULT '{}'::jsonb
 );
-CREATE UNIQUE INDEX spaceship_dns_idx ON spaceship_dns_records (domain, type, name, value);
+CREATE UNIQUE INDEX IF NOT EXISTS spaceship_dns_idx ON spaceship_dns_records (domain, type, name, value);
 
-CREATE TABLE sync_runs (
+CREATE TABLE IF NOT EXISTS sync_runs (
   id serial PRIMARY KEY,
   provider varchar(50) NOT NULL,
   action varchar(80) NOT NULL DEFAULT 'sync',
@@ -200,7 +182,7 @@ CREATE TABLE sync_runs (
   metadata jsonb NOT NULL DEFAULT '{}'::jsonb
 );
 
-CREATE TABLE deployment_runs (
+CREATE TABLE IF NOT EXISTS deployment_runs (
   id serial PRIMARY KEY,
   provider varchar(50) NOT NULL,
   external_id varchar(120) NOT NULL,
@@ -210,9 +192,9 @@ CREATE TABLE deployment_runs (
   created_at timestamptz NOT NULL DEFAULT now(),
   metadata jsonb NOT NULL DEFAULT '{}'::jsonb
 );
-CREATE UNIQUE INDEX deployment_external_idx ON deployment_runs (provider, external_id);
+CREATE UNIQUE INDEX IF NOT EXISTS deployment_external_idx ON deployment_runs (provider, external_id);
 
-CREATE TABLE audit_logs (
+CREATE TABLE IF NOT EXISTS audit_logs (
   id serial PRIMARY KEY,
   user_id integer NOT NULL REFERENCES users(id),
   action varchar(100) NOT NULL,
@@ -228,3 +210,5 @@ CREATE TABLE audit_logs (
   request_id varchar(100) NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+

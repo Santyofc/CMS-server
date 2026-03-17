@@ -5,6 +5,8 @@ import { deploymentRuns, getDb } from "@/packages/db";
 import { requireApiUser } from "@/lib/security/auth";
 import { writeAuditLog } from "@/lib/security/audit";
 import { runScript } from "@/lib/security/exec";
+import { errorResponse } from "@/lib/security/http";
+import { logError } from "@/lib/security/logger";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { enforceSameOrigin } from "@/lib/security/request-integrity";
 import { getRequestAuditMeta } from "@/lib/security/request-meta";
@@ -59,7 +61,7 @@ export async function POST(request: NextRequest) {
     return auth.response;
   }
 
-  const rate = checkRateLimit(`deploy:${auth.user.id}`, 5, 60_000);
+  const rate = await checkRateLimit(`deploy:${auth.user.id}`, 5, 60_000);
   if (!rate.allowed) {
     return NextResponse.json({ error: "Too many deploy requests" }, { status: 429 });
   }
@@ -118,6 +120,7 @@ export async function POST(request: NextRequest) {
     }, { status: success ? 200 : 500 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Deploy failed";
+    logError({ route: "/api/deploy", requestId: requestMeta.requestId }, error, "deploy failed");
 
     await db.insert(deploymentRuns).values({
       provider: "system",
@@ -143,6 +146,7 @@ export async function POST(request: NextRequest) {
       errorMessage: message
     });
 
-    return NextResponse.json({ error: message }, { status: 500 });
+    return errorResponse("Deploy failed", 500);
   }
 }
+

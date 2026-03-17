@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     return auth.response;
   }
 
-  const rate = checkRateLimit(`sync-github:${auth.user.id}`, 10, 60_000);
+  const rate = await checkRateLimit(`sync-github:${auth.user.id}`, 10, 60_000);
   if (!rate.allowed) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
@@ -57,6 +57,8 @@ export async function POST(request: NextRequest) {
       requestId: meta.requestId,
       errorMessage: message
     });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+

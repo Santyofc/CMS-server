@@ -3,6 +3,8 @@ import { spaceshipDnsWriteSchema } from "@/lib/config/env";
 import { listSpaceshipDns, updateSpaceshipDns } from "@/lib/services/providers/spaceship";
 import { requireApiUser } from "@/lib/security/auth";
 import { writeAuditLog } from "@/lib/security/audit";
+import { errorResponse } from "@/lib/security/http";
+import { logError } from "@/lib/security/logger";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { enforceSameOrigin } from "@/lib/security/request-integrity";
 import { getRequestAuditMeta } from "@/lib/security/request-meta";
@@ -18,8 +20,8 @@ export async function GET(request: NextRequest) {
     const data = await listSpaceshipDns(domain);
     return NextResponse.json({ data });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load Spaceship DNS";
-    return NextResponse.json({ error: message }, { status: 500 });
+    logError({ route: "/api/providers/spaceship/dns" }, error, "spaceship dns read failed");
+    return errorResponse("Failed to load Spaceship DNS", 500);
   }
 }
 
@@ -36,7 +38,7 @@ export async function POST(request: NextRequest) {
     return auth.response;
   }
 
-  const rate = checkRateLimit(`spaceship-dns-write:${auth.user.id}`, 10, 60_000);
+  const rate = await checkRateLimit(`spaceship-dns-write:${auth.user.id}`, 10, 60_000);
   if (!rate.allowed) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
@@ -61,6 +63,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ data });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update Spaceship DNS records";
+    logError({ route: "/api/providers/spaceship/dns", requestId: meta.requestId }, error, "spaceship dns write failed");
     await writeAuditLog({
       userId: auth.user.id,
       action: "spaceship_dns_write",
@@ -75,6 +78,7 @@ export async function POST(request: NextRequest) {
       requestId: meta.requestId,
       errorMessage: message
     });
-    return NextResponse.json({ error: message }, { status: 400 });
+    return errorResponse("Failed to update Spaceship DNS records", 400);
   }
 }
+

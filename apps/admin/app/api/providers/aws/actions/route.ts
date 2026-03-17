@@ -3,6 +3,8 @@ import { awsActionSchema } from "@/lib/config/env";
 import { runAwsInstanceAction } from "@/lib/services/providers/aws";
 import { requireApiUser } from "@/lib/security/auth";
 import { writeAuditLog } from "@/lib/security/audit";
+import { errorResponse } from "@/lib/security/http";
+import { logError } from "@/lib/security/logger";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { enforceSameOrigin } from "@/lib/security/request-integrity";
 import { getRequestAuditMeta } from "@/lib/security/request-meta";
@@ -20,7 +22,7 @@ export async function POST(request: NextRequest) {
     return auth.response;
   }
 
-  const rate = checkRateLimit(`aws-action:${auth.user.id}`, 20, 60_000);
+  const rate = await checkRateLimit(`aws-action:${auth.user.id}`, 20, 60_000);
   if (!rate.allowed) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
@@ -47,6 +49,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ data });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed AWS action";
+    logError({ route: "/api/providers/aws/actions", requestId: meta.requestId }, error, "aws action failed");
     await writeAuditLog({
       userId: auth.user.id,
       action: "aws_action",
@@ -61,6 +64,7 @@ export async function POST(request: NextRequest) {
       requestId: meta.requestId,
       errorMessage: message
     });
-    return NextResponse.json({ error: message }, { status: 400 });
+    return errorResponse("Failed AWS action", 400);
   }
 }
+

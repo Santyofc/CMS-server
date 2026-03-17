@@ -9,8 +9,9 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "lint": "turbo run lint",
+    "lint": "pnpm check:migrations && turbo run lint",
     "typecheck": "turbo run typecheck",
+    "check:migrations": "node scripts/check-migrations.js",
     "db:generate": "pnpm --filter @platform/db db:generate",
     "db:migrate": "pnpm --filter @platform/db db:migrate"
   },

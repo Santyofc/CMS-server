@@ -1,3 +1,4 @@
+import { createHash, randomUUID } from "crypto";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { and, eq, gt } from "drizzle-orm";
@@ -14,6 +15,10 @@ export type AuthUser = {
 
 const SESSION_COOKIE = "cms_session";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 8;
+
+function hashSessionToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
 
 function roleRank(role: Role): number {
   const ranks: Record<Role, number> = {
@@ -38,12 +43,16 @@ export async function loginWithEmailPassword(email: string, password: string): P
     return null;
   }
 
-  const token = crypto.randomUUID();
+  const token = randomUUID();
+  const tokenHash = hashSessionToken(token);
   const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
+
+  // Rotate existing active sessions for this user.
+  await db.delete(sessions).where(eq(sessions.user_id, user.id));
 
   await db.insert(sessions).values({
     user_id: user.id,
-    token,
+    token: tokenHash,
     expires_at: expiresAt
   });
 
@@ -69,7 +78,7 @@ export async function logoutCurrentSession() {
   }
 
   const db = getDb();
-  await db.delete(sessions).where(eq(sessions.token, token));
+  await db.delete(sessions).where(eq(sessions.token, hashSessionToken(token)));
   cookies().delete(SESSION_COOKIE);
 }
 
@@ -78,6 +87,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   if (!token) {
     return null;
   }
+  const tokenHash = hashSessionToken(token);
 
   const db = getDb();
   const [session] = await db
@@ -89,7 +99,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.user_id))
-    .where(and(eq(sessions.token, token), gt(sessions.expires_at, new Date()), eq(users.is_active, true)));
+    .where(and(eq(sessions.token, tokenHash), gt(sessions.expires_at, new Date()), eq(users.is_active, true)));
 
   if (!session) {
     return null;

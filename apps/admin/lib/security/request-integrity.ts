@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 function parseExpectedOrigin() {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const appUrl = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL;
   if (!appUrl) {
     return null;
   }
@@ -15,10 +15,14 @@ function parseExpectedOrigin() {
 
 export function enforceSameOrigin(request: NextRequest) {
   const origin = request.headers.get("origin");
-  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  const host = request.headers.get("host");
+  const trustedForwardedHost = process.env.TRUST_PROXY === "true"
+    ? request.headers.get("x-forwarded-host")
+    : null;
+  const effectiveHost = trustedForwardedHost ?? host;
   const forwardedProto = request.headers.get("x-forwarded-proto");
 
-  if (!origin || !host) {
+  if (!origin || !effectiveHost) {
     return {
       ok: false as const,
       response: NextResponse.json({ error: "Invalid request origin" }, { status: 403 })
@@ -35,7 +39,7 @@ export function enforceSameOrigin(request: NextRequest) {
     };
   }
 
-  if (originUrl.host !== host) {
+  if (originUrl.host !== effectiveHost) {
     return {
       ok: false as const,
       response: NextResponse.json({ error: "Cross-origin requests are not allowed" }, { status: 403 })

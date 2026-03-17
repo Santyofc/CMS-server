@@ -1,8 +1,10 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { listVercelDeployments, listVercelProjects } from "@/lib/services/providers/vercel";
+import { requirePageAccess } from "@/lib/security/page";
 
 export default async function VercelProviderPage() {
   noStore();
+  await requirePageAccess("viewer");
   const [projects, deployments] = await Promise.all([
     listVercelProjects(),
     listVercelDeployments(20)

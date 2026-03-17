@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
 import { getDashboardSummary } from "@/lib/services/dashboard";
+import { requirePageAccess } from "@/lib/security/page";
 
 export default async function Home() {
   noStore();
+  await requirePageAccess("viewer");
   const summary = await getDashboardSummary();
 
   const cards = [

@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const data = await listNeonBranches(payload.project_id);
     return NextResponse.json({ data });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load Neon branches";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: "Failed to load Neon branches" }, { status: 400 });
   }
 }
+

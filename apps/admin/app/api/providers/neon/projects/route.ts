@@ -12,8 +12,7 @@ export async function GET() {
     const data = await listNeonProjects();
     return NextResponse.json({ data });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load Neon projects";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to load Neon projects" }, { status: 500 });
   }
 }
 
@@ -23,3 +22,4 @@ export async function POST(_request: NextRequest) {
     { status: 405 }
   );
 }
+
