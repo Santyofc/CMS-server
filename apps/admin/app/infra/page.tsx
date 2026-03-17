@@ -1,24 +1,17 @@
-"use client";
-import { useEffect, useState } from "react";
+import { unstable_noStore as noStore } from "next/cache";
+import { listAwsInstances } from "@/lib/services/providers/aws";
 
-type Server = { id: string; name: string; ip: string; environment: string; status: string };
-
-export default function InfraPage() {
-  const [servers, setServers] = useState<Server[]>([]);
-
-  useEffect(() => {
-    fetch("/api/infra").then((r) => r.json()).then((d) => setServers(d.data || []));
-  }, []);
+export default async function InfraPage() {
+  noStore();
+  const instances = await listAwsInstances();
 
   return (
-    <main style={{ padding: 24, maxWidth: 1024, margin: "0 auto" }}>
-      <h1>Infraestructura</h1>
-      <p>Servidores registrados y acciones de operaciones seguras.</p>
-      <ul style={{ paddingLeft: 0, listStyle: "none" }}>
-        {servers.map((server) => (
-          <li key={server.id} style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 10, marginTop: 12, padding: 12 }}>
-            <strong>{server.name}</strong> • {server.ip} • {server.environment} • {server.status}
-          </li>
+    <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
+      <h1>Infra</h1>
+      <p>Vista legacy conectada a AWS real.</p>
+      <ul style={{ paddingLeft: 18 }}>
+        {instances.map((instance) => (
+          <li key={instance.instance_id}>{instance.instance_id} - {instance.state}</li>
         ))}
       </ul>
     </main>

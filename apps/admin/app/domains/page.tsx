@@ -1,38 +1,19 @@
-"use client";
-import { useEffect, useState } from "react";
+import { unstable_noStore as noStore } from "next/cache";
+import { listSpaceshipDns } from "@/lib/services/providers/spaceship";
 
-type Domain = { id: string; domain: string; target: string; environment: string; serverId: string };
-
-export default function DomainsPage() {
-  const [domains, setDomains] = useState<Domain[]>([]);
-
-  useEffect(() => {
-    fetch("/api/domains").then((r) => r.json()).then((d) => setDomains(d.data || []));
-  }, []);
+export default async function DomainsPage() {
+  noStore();
+  const domains = await listSpaceshipDns();
 
   return (
-    <main style={{ padding: 24, maxWidth: 1024, margin: "0 auto" }}>
-      <h1>Dominios</h1>
-      <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 16 }}>
-        <thead>
-          <tr>
-            <th style={{ textAlign: "left", borderBottom: "1px solid #d1d5db", padding: 8 }}>Dominio</th>
-            <th style={{ textAlign: "left", borderBottom: "1px solid #d1d5db", padding: 8 }}>IP</th>
-            <th style={{ textAlign: "left", borderBottom: "1px solid #d1d5db", padding: 8 }}>Entorno</th>
-            <th style={{ textAlign: "left", borderBottom: "1px solid #d1d5db", padding: 8 }}>Servidor</th>
-          </tr>
-        </thead>
-        <tbody>
-          {domains.map((d) => (
-            <tr key={d.id}>
-              <td style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>{d.domain}</td>
-              <td style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>{d.target}</td>
-              <td style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>{d.environment}</td>
-              <td style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>{d.serverId}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
+      <h1>Domains</h1>
+      <p>Vista legacy conectada a Spaceship DNS real.</p>
+      <ul style={{ paddingLeft: 18 }}>
+        {domains.map((domain) => (
+          <li key={domain.domain}>{domain.domain} ({domain.records.length} records)</li>
+        ))}
+      </ul>
     </main>
   );
 }

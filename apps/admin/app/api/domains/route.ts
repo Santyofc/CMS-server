@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
-
-const domains = [
-  { id: "d1", domain: "zonasurtech.online", target: "3.137.182.156", environment: "production", serverId: "srv-01" },
-  { id: "d2", domain: "facturas.zonasurtech.online", target: "3.137.182.156", environment: "production", serverId: "srv-01" },
-  { id: "d3", domain: "dev.zonasurtech.online", target: "18.221.239.217", environment: "staging", serverId: "srv-02" }
-];
+import { listSpaceshipDns } from "@/lib/services/providers/spaceship";
+import { requireApiUser } from "@/lib/security/auth";
 
 export async function GET() {
-  return NextResponse.json({ data: domains });
+  const auth = await requireApiUser("viewer");
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  try {
+    const data = await listSpaceshipDns();
+    return NextResponse.json({ data });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to load domains";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
