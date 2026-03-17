@@ -142,15 +142,15 @@ WantedBy=multi-user.target
 Validacion local:
 
 ```bash
-curl --fail http://127.0.0.1:3001/api/health
-curl --fail http://127.0.0.1:3001/api/readiness
+curl --fail --retry 10 --retry-delay 3 --retry-connrefused http://127.0.0.1:3001/api/health
+curl --fail --retry 10 --retry-delay 3 --retry-connrefused http://127.0.0.1:3001/api/readiness
 ```
 
 Validacion publica:
 
 ```bash
-curl --fail https://cms.zonasurtech.online/api/health
-curl --fail https://cms.zonasurtech.online/api/readiness
+curl --fail --retry 10 --retry-delay 3 --retry-connrefused https://cms.zonasurtech.online/api/health
+curl --fail --retry 10 --retry-delay 3 --retry-connrefused https://cms.zonasurtech.online/api/readiness
 ```
 
 ## Nginx
@@ -214,8 +214,8 @@ pnpm install --frozen-lockfile
 pnpm build
 pnpm db:migrate
 pnpm exec pm2 startOrReload ecosystem.config.cjs --only cms --update-env
-curl --fail http://127.0.0.1:3001/api/health
-curl --fail http://127.0.0.1:3001/api/readiness
+curl --fail --retry 10 --retry-delay 3 --retry-connrefused http://127.0.0.1:3001/api/health
+curl --fail --retry 10 --retry-delay 3 --retry-connrefused http://127.0.0.1:3001/api/readiness
 ```
 
 Logs utiles:

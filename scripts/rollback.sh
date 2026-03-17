@@ -43,7 +43,7 @@ log "reloading process ${PM2_APP_NAME}"
 pnpm exec pm2 startOrReload ecosystem.config.cjs --only "${PM2_APP_NAME}" --update-env
 pnpm exec pm2 save
 
-curl --fail --silent --show-error --retry 10 --retry-delay 3 "${LOCAL_HEALTH_URL}" > /dev/null
-curl --fail --silent --show-error --retry 10 --retry-delay 3 "${LOCAL_READINESS_URL}" > /dev/null
+curl --fail --silent --show-error --retry 10 --retry-delay 3 --retry-connrefused "${LOCAL_HEALTH_URL}" > /dev/null
+curl --fail --silent --show-error --retry 10 --retry-delay 3 --retry-connrefused "${LOCAL_READINESS_URL}" > /dev/null
 
 log "rollback successful: $(git rev-parse --short HEAD) (code/process only; database schema is not reverted)"
