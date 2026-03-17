@@ -15,6 +15,7 @@
     "check:migrations": "node scripts/check-migrations.js",
     "db:generate": "pnpm --filter @platform/db db:generate",
     "db:migrate": "pnpm --filter @platform/db db:migrate",
+    "users:bootstrap": "node scripts/bootstrap-user.mjs",
     "deploy:prod": "bash scripts/deploy.sh",
     "rollback:prod": "bash scripts/rollback.sh"
   },

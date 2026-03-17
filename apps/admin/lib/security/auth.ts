@@ -4,8 +4,7 @@ import { NextResponse } from "next/server";
 import { and, eq, gt } from "drizzle-orm";
 import { getDb, sessions, users } from "@/packages/db";
 import { verifyPassword } from "@/lib/security/password";
-
-export type Role = "superadmin" | "admin" | "operator" | "viewer";
+import { hasMinRole as hasRequiredRole, normalizeRole, type Role } from "@/lib/security/roles";
 
 export type AuthUser = {
   id: number;
@@ -20,19 +19,8 @@ function hashSessionToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-function roleRank(role: Role): number {
-  const ranks: Record<Role, number> = {
-    superadmin: 4,
-    admin: 3,
-    operator: 2,
-    viewer: 1
-  };
-
-  return ranks[role];
-}
-
 export function hasMinRole(user: AuthUser, minRole: Role) {
-  return roleRank(user.role) >= roleRank(minRole);
+  return hasRequiredRole(user.role, minRole);
 }
 
 export async function loginWithEmailPassword(email: string, password: string): Promise<AuthUser | null> {
@@ -67,7 +55,7 @@ export async function loginWithEmailPassword(email: string, password: string): P
   return {
     id: user.id,
     email: user.email,
-    role: user.role as Role
+    role: normalizeRole(user.role)
   };
 }
 
@@ -108,7 +96,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   return {
     id: session.user_id,
     email: session.email,
-    role: session.role as Role
+    role: normalizeRole(session.role)
   };
 }
 

@@ -87,4 +87,17 @@ export type DashboardSummaryDto = {
     finished_at: string | null;
     records_total: number;
   }>;
+  providers: Array<{
+    key: string;
+    name: string;
+    mode: string;
+    last_synced_at: string | null;
+  }>;
+  deployments: Array<{
+    provider: string;
+    project_name: string;
+    status: string;
+    url: string | null;
+    created_at: string;
+  }>;
 };

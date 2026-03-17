@@ -2,6 +2,8 @@
 
 Business Control Plane para operar infraestructura, repositorios, despliegues y DNS desde un panel Next.js.
 
+DB actual de produccion: Neon Postgres sobre `DATABASE_URL` normal de Postgres.
+
 ## Requisitos
 
 - Node.js 20+
@@ -47,6 +49,8 @@ Aplicar:
 pnpm db:migrate
 ```
 
+Las migraciones se ejecutan despues de `pnpm build` en el flujo de deploy productivo.
+
 El pipeline ejecuta `pnpm check:migrations` dentro de `pnpm lint` y bloquea patrones inseguros como `DROP TABLE`, `DROP COLUMN`, `TRUNCATE` y `DELETE FROM`.
 
 ## Produccion en EC2
@@ -91,6 +95,44 @@ Variables minimas para deploy:
 - `DATABASE_URL=...`
 - `REDIS_URL=...`
 - `LOG_LEVEL=info`
+
+## Usuarios y acceso
+
+Roles soportados por el backend:
+
+- `owner`
+- `admin`
+- `operator`
+- `viewer`
+
+Compatibilidad legada:
+
+- `superadmin` se normaliza a `owner` en runtime para no romper cuentas ya existentes.
+
+Reglas base:
+
+- `owner`: puede gestionar cualquier usuario y asignar cualquier rol
+- `admin`: puede gestionar `operator` y `viewer`
+- `operator` / `viewer`: sin acceso a gestion de usuarios
+
+Crear primer usuario:
+
+```bash
+cd /var/www/cms
+pnpm users:bootstrap -- --email owner@zonasurtech.online --password 'Cambiar12345' --role owner
+```
+
+Crear usuarios desde panel:
+
+- iniciar sesion como `owner` o `admin`
+- abrir `/users`
+- crear usuario con email, password inicial y rol permitido por tu rol actual
+
+Notas:
+
+- passwords siempre se guardan hasheadas
+- usuarios inactivos no pueden autenticarse
+- altas, cambios de rol y activaciones/desactivaciones escriben en `audit_logs`
 
 El runtime de la app escucha en `127.0.0.1:3001` y Nginx debe hacer proxy a ese puerto.
 
@@ -216,6 +258,13 @@ pnpm db:migrate
 pnpm exec pm2 startOrReload ecosystem.config.cjs --only cms --update-env
 curl --fail http://127.0.0.1:3001/api/health
 curl --fail http://127.0.0.1:3001/api/readiness
+```
+
+Validacion publica:
+
+```bash
+curl --fail https://cms.zonasurtech.online/api/health
+curl --fail https://cms.zonasurtech.online/api/readiness
 ```
 
 Logs utiles:

@@ -1,7 +1,9 @@
 import { desc, sql } from "drizzle-orm";
 import {
+  deploymentRuns,
   ec2Metrics,
   getDb,
+  providers,
   repositories,
   servers,
   spaceshipDnsRecords,
@@ -39,6 +41,8 @@ export async function getDashboardSummary(): Promise<DashboardSummaryDto> {
 
   const metrics = await db.select().from(ec2Metrics).orderBy(desc(ec2Metrics.timestamp)).limit(120);
   const timeline = await db.select().from(syncRuns).orderBy(desc(syncRuns.started_at)).limit(25);
+  const providerRows = await db.select().from(providers).orderBy(providers.name);
+  const deployments = await db.select().from(deploymentRuns).orderBy(desc(deploymentRuns.created_at)).limit(8);
 
   return {
     totals: {
@@ -61,6 +65,19 @@ export async function getDashboardSummary(): Promise<DashboardSummaryDto> {
       status: run.status,
       finished_at: run.finished_at ? run.finished_at.toISOString() : null,
       records_total: run.records_total
+    })),
+    providers: providerRows.map((provider) => ({
+      key: provider.key,
+      name: provider.name,
+      mode: provider.mode,
+      last_synced_at: provider.last_synced_at ? provider.last_synced_at.toISOString() : null
+    })),
+    deployments: deployments.map((deployment) => ({
+      provider: deployment.provider,
+      project_name: deployment.project_name,
+      status: deployment.status,
+      url: deployment.url ?? null,
+      created_at: deployment.created_at.toISOString()
     }))
   };
 }
