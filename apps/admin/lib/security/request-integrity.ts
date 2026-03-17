@@ -7,33 +7,43 @@ function parseExpectedOrigin() {
   }
 
   try {
-    return new URL(appUrl).origin;
+    return new URL(appUrl).origin.toLowerCase();
   } catch {
     return null;
   }
 }
 
-function normalizeForwardedValue(value: string | null) {
+function normalizeSingleValue(value: string | null) {
   if (!value) {
     return null;
   }
 
+  return value.trim().toLowerCase();
+}
+
+function parseForwardedValues(value: string | null) {
+  if (!value) {
+    return [];
+  }
+
   return value
-    .split(",")[0]
-    .trim()
-    .toLowerCase();
+    .split(",")
+    .map((part) => part.trim().toLowerCase())
+    .filter(Boolean);
 }
 
 export function enforceSameOrigin(request: NextRequest) {
   const origin = request.headers.get("origin");
   const host = request.headers.get("host");
-  const trustedForwardedHost = process.env.TRUST_PROXY === "true"
-    ? normalizeForwardedValue(request.headers.get("x-forwarded-host"))
-    : null;
-  const effectiveHost = trustedForwardedHost ?? normalizeForwardedValue(host);
-  const forwardedProto = process.env.TRUST_PROXY === "true"
-    ? normalizeForwardedValue(request.headers.get("x-forwarded-proto"))
-    : null;
+
+  const trustedForwardedHosts = process.env.TRUST_PROXY === "true"
+    ? parseForwardedValues(request.headers.get("x-forwarded-host"))
+    : [];
+  const effectiveHost = trustedForwardedHosts[0] ?? normalizeSingleValue(host);
+
+  const forwardedProtos = process.env.TRUST_PROXY === "true"
+    ? parseForwardedValues(request.headers.get("x-forwarded-proto"))
+    : [];
 
   if (!origin || !effectiveHost) {
     return {
@@ -52,14 +62,17 @@ export function enforceSameOrigin(request: NextRequest) {
     };
   }
 
-  if (originUrl.host.toLowerCase() !== effectiveHost) {
+  const originHost = originUrl.host.toLowerCase();
+  const originProto = originUrl.protocol.replace(":", "").toLowerCase();
+
+  if (originHost !== effectiveHost) {
     return {
       ok: false as const,
       response: NextResponse.json({ error: "Cross-origin requests are not allowed" }, { status: 403 })
     };
   }
 
-  if (forwardedProto && originUrl.protocol.replace(":", "").toLowerCase() !== forwardedProto) {
+  if (forwardedProtos.length > 0 && !forwardedProtos.includes(originProto)) {
     return {
       ok: false as const,
       response: NextResponse.json({ error: "Protocol mismatch" }, { status: 403 })
@@ -67,7 +80,7 @@ export function enforceSameOrigin(request: NextRequest) {
   }
 
   const expectedOrigin = parseExpectedOrigin();
-  if (expectedOrigin && originUrl.origin !== expectedOrigin) {
+  if (expectedOrigin && originUrl.origin.toLowerCase() !== expectedOrigin) {
     return {
       ok: false as const,
       response: NextResponse.json({ error: "Origin not allowed" }, { status: 403 })
