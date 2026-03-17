@@ -4,9 +4,39 @@ runtime_log() {
   printf '[env] %s\n' "$*"
 }
 
+trim_whitespace() {
+  local value="$1"
+  value="${value#"${value%%[![:space:]]*}"}"
+  value="${value%"${value##*[![:space:]]}"}"
+  printf '%s' "${value}"
+}
+
+strip_wrapping_quotes() {
+  local value="$1"
+
+  if [[ "${#value}" -ge 2 ]]; then
+    if [[ "${value:0:1}" == "\"" && "${value: -1}" == "\"" ]]; then
+      printf '%s' "${value:1:${#value}-2}"
+      return
+    fi
+
+    if [[ "${value:0:1}" == "'" && "${value: -1}" == "'" ]]; then
+      printf '%s' "${value:1:${#value}-2}"
+      return
+    fi
+  fi
+
+  printf '%s' "${value}"
+}
+
 load_runtime_env() {
   local project_dir="${1:-/var/www/cms}"
   local env_file="${project_dir}/.env"
+  local raw_line=""
+  local line=""
+  local separator_index=0
+  local key=""
+  local value=""
 
   if [[ ! -f "${env_file}" ]]; then
     if [[ "${NODE_ENV:-production}" == "production" ]]; then
@@ -22,10 +52,31 @@ load_runtime_env() {
     return 1
   fi
 
-  set -a
-  # shellcheck disable=SC1090
-  source "${env_file}"
-  set +a
+  while IFS= read -r raw_line || [[ -n "${raw_line}" ]]; do
+    line="$(trim_whitespace "${raw_line}")"
+
+    if [[ -z "${line}" || "${line}" == \#* ]]; then
+      continue
+    fi
+
+    separator_index="$(expr index "${line}" '=')"
+    if [[ "${separator_index}" -le 1 ]]; then
+      runtime_log "invalid env line: ${raw_line}"
+      return 1
+    fi
+
+    key="$(trim_whitespace "${line:0:separator_index-1}")"
+    value="$(trim_whitespace "${line:separator_index}")"
+    value="$(strip_wrapping_quotes "${value}")"
+
+    if [[ ! "${key}" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+      runtime_log "invalid env key: ${key}"
+      return 1
+    fi
+
+    printf -v "${key}" '%s' "${value}"
+    export "${key}"
+  done < "${env_file}"
 }
 
 require_runtime_vars() {

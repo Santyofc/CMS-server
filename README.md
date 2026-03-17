@@ -67,13 +67,20 @@ sudo mkdir -p /var/www/cms
 sudo chown -R "$USER:$USER" /var/www/cms
 ```
 
-Clona el repo y crea un `.env` shell-compatible en `/var/www/cms/.env`:
+Clona el repo y crea `/var/www/cms/.env` en formato dotenv simple:
 
 ```bash
 git clone https://github.com/Santyofc/CMS-server.git /var/www/cms
 cd /var/www/cms
 cp env.example .env
 ```
+
+Reglas del parser de `.env`:
+
+- un `KEY=VALUE` por linea
+- `&` no necesita comillas
+- usa comillas solo si el valor contiene espacios, `#` literal o whitespace al inicio/final
+- no uses multilinea ni expansion de shell
 
 Variables minimas para deploy:
 
